@@ -1,4 +1,5 @@
 # SQLLineage
+
 SQL Lineage Analysis Tool powered by Python
 
 [![image](https://img.shields.io/pypi/v/sqllineage.svg)](https://pypi.org/project/sqllineage/)
@@ -14,26 +15,29 @@ SQL Lineage Analysis Tool powered by Python
 Never get the hang of a SQL parser? SQLLineage comes to the rescue. Given a SQL command, SQLLineage will tell you its
 source and target tables, without worrying about Tokens, Keyword, Identifier and all the jagons used by SQL parsers.
 
-Behind the scene, SQLLineage pluggable leverages parser library ([`sqlfluff`](https://github.com/sqlfluff/sqlfluff) 
+Behind the scene, SQLLineage pluggable leverages parser library ([`sqlfluff`](https://github.com/sqlfluff/sqlfluff)
 and [`sqlparse`](https://github.com/andialbrecht/sqlparse)) to parse the SQL command, analyze the AST, stores the lineage
-information in a graph (using graph library [`networkx`](https://github.com/networkx/networkx)), and brings you all the 
+information in a graph (using graph library [`networkx`](https://github.com/networkx/networkx)), and brings you all the
 human-readable result with ease.
 
 ## Demo & Documentation
+
 Talk is cheap, show me a [demo](https://reata.github.io/sqllineage/).
 
-[Documentation](https://sqllineage.readthedocs.io) is online hosted by readthedocs, and you can check the 
+[Documentation](https://sqllineage.readthedocs.io) is online hosted by readthedocs, and you can check the
 [release note](https://sqllineage.readthedocs.io/en/latest/release_note/changelog.html) there.
 
-
 ## Quick Start
+
 Install sqllineage via PyPI:
+
 ```bash
-$ pip install sqllineage
+pip install sqllineage
 ```
 
 Using sqllineage command to parse a quoted-query-string:
-```
+
+```bash
 $ sqllineage -e "insert into db1.table1 select * from db2.table2"
 Statements(#): 1
 Source Tables:
@@ -43,7 +47,8 @@ Target Tables:
 ```
 
 Or you can parse a SQL file with -f option:
-```
+
+```bash
 $ sqllineage -f foo.sql
 Statements(#): 1
 Source Tables:
@@ -56,8 +61,10 @@ Target Tables:
 ## Advanced Usage
 
 ### Multiple SQL Statements
+
 Lineage is combined from multiple SQL statements, with intermediate tables identified:
-```
+
+```bash
 $ sqllineage -e "insert into db1.table1 select * from db2.table2; insert into db3.table3 select * from db1.table1;"
 Statements(#): 2
 Source Tables:
@@ -69,8 +76,10 @@ Intermediate Tables:
 ```
 
 ### Verbose Lineage Result
-And if you want to see lineage for each SQL statement, just toggle verbose option
-```
+
+And if you want to see lineage for each SQL statement, just toggle the verbose option
+
+```bash
 $ sqllineage -v -e "insert into db1.table1 select * from db2.table2; insert into db3.table3 select * from db1.table1;"
 Statement #1: insert into db1.table1 select * from db2.table2;
     table read: [Table: db2.table2]
@@ -96,15 +105,17 @@ Intermediate Tables:
 ```
 
 ### Dialect-Awareness Lineage
+
 By default, sqllineage use `ansi` dialect to parse and validate your SQL. However, some SQL syntax you take for granted
 in daily life might not be in ANSI standard. In addition, different SQL dialects have different set of SQL keywords,
 further weakening sqllineage's capabilities when keyword used as table name or column name. To get the most out of
 sqllineage, we strongly encourage you to pass the dialect to assist the lineage analyzing.
 
-Take below example, `INSERT OVERWRITE` statement is only supported by big data solutions like Hive/SparkSQL, and `MAP`
-is a reserved keyword in Hive thus can not be used as table name while it is not for SparkSQL. Both ansi and hive dialect
-tell you this causes syntax error and sparksql gives the correct result:
-```
+Take the below example, `INSERT OVERWRITE` statement is only supported by big data solutions like Hive/SparkSQL, and `MAP`
+is a reserved keyword in Hive thus can not be used as table name while it is not for SparkSQL. Both ANSI and Hive dialect
+tell you this causes syntax error and SparkSQL gives the correct result:
+
+```bash
 $ sqllineage -e "INSERT OVERWRITE TABLE map SELECT * FROM foo"
 ...
 sqllineage.exceptions.InvalidSyntaxException: This SQL statement is unparsable, please check potential syntax error for SQL
@@ -124,7 +135,8 @@ Target Tables:
 Use `sqllineage --dialects` to see all available dialects.
 
 ### Column-Level Lineage
-We also support column level lineage in command line interface, set level option to column, all column lineage path will 
+
+We also support column level lineage in the command line interface, set level option to column, all column lineage paths will
 be printed.
 
 ```sql
@@ -151,9 +163,9 @@ FROM foo a
               ON a.col1 = b.col1;
 ```
 
-Suppose this sql is stored in a file called test.sql
+Suppose the above SQL is stored in a file called test.sql, then
 
-```
+```bash
 $ sqllineage -f test.sql -l column
 <default>.corge.col1 <- <default>.foo.col1 <- <default>.bar.col1
 <default>.corge.col2 <- <default>.foo.col2 <- <default>.baz.col1
@@ -164,23 +176,27 @@ $ sqllineage -f test.sql -l column
 ```
 
 ### MetaData-Awareness Lineage
-By observing the column lineage generated from previous step, you'll possibly notice that:
+
+By observing the column lineage generated from the previous step, you'll possibly notice that:
+
 1. `<default>.foo.* <- <default>.quux.*`: the wildcard is not expanded.
-2. `<default>.foo.col4 <- col4`: col4 is not assigned with source table.
+1. `<default>.foo.col4 <- col4`: `col4` is not assigned with source table.
 
 It's not perfect because we don't know the columns encoded in `*` of table `quux`. Likewise, given the context,
-col4 could be coming from `bar`, `baz` or `quux`. Without metadata, this is the best sqllineage can do.
+`col4` could be coming from `bar`, `baz` or `quux`. Without metadata, this is the best sqllineage can do.
 
-User can optionally provide the metadata information to sqllineage to improve the lineage result.
+The user can optionally provide the metadata information to sqllineage to improve the lineage result.
 
-Suppose all the tables are created in sqlite database with a file called `db.db`. In particular, 
-table `quux` has columns `col5` and `col6` and `baz` has column `col4`. 
+Suppose all the tables are created in an SQLite database with a file called `db.db`. In particular,
+table `quux` has columns `col5` and `col6`, and `baz` has column `col4`.
+
 ```shell
 sqlite3 db.db 'CREATE TABLE IF NOT EXISTS baz (bar_id int, col1 int, col4 int)';
 sqlite3 db.db 'CREATE TABLE IF NOT EXISTS quux (quux_id int, col5 int, col6 int)';
 ```
 
 Now given the same SQL, column lineage is fully resolved.
+
 ```shell
 $ SQLLINEAGE_DEFAULT_SCHEMA=main sqllineage -f test.sql -l column --sqlalchemy_url=sqlite:///db.db
 main.corge.col1 <- main.foo.col1 <- main.bar.col1
@@ -191,20 +207,23 @@ main.foo.col4 <- main.baz.col4
 main.foo.col5 <- main.quux.col5
 main.foo.col6 <- main.quux.col6
 ```
-The default schema name in sqlite is called `main`, we have to specify here because the tables in SQL file are unqualified.
 
-SQLLineage leverages [`sqlalchemy`](https://github.com/sqlalchemy/sqlalchemy) to retrieve metadata from different SQL databases. 
+The default schema name in SQLite is called `main`, we have to specify it here because the tables in the SQL file are unqualified.
+
+SQLLineage leverages [`sqlalchemy`](https://github.com/sqlalchemy/sqlalchemy) to retrieve metadata from different SQL databases.
 Check for more details on SQLLineage [MetaData](https://sqllineage.readthedocs.io/en/latest/gear_up/metadata.html).
 
-
 ### Lineage Visualization
+
 One more cool feature, if you want a graph visualization for the lineage result, toggle graph-visualization option
 
 Still using the above SQL file
-```
+
+```shell
 sqllineage -g -f foo.sql
 ```
-A webserver will be started, showing DAG representation of the lineage result in browser:
+
+A webserver will be started, showing a DAG representation of the lineage result in browser:
 
 - Table-Level Lineage
 
