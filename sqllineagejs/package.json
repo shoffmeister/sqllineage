@@ -10,6 +10,8 @@
     "clsx": "^1.1.1",
     "cytoscape": "^3.17.1",
     "cytoscape-dagre": "^2.3.2",
+    "cytoscape-svg": "0.4.0",
+    "file-saver": "2.0.5",
     "monaco-editor-webpack-plugin": "^3.0.1",
     "react": "^17.0.1",
     "react-cytoscapejs": "^1.2.1",

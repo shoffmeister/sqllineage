@@ -1,6 +1,7 @@
 import React, {useEffect, useRef} from 'react';
 import CytoscapeComponent from 'react-cytoscapejs';
 import dagre from 'cytoscape-dagre';
+import svg from 'cytoscape-svg';
 import cytoscape from 'cytoscape';
 import {useDispatch, useSelector} from "react-redux";
 import {selectEditor, setDagLevel} from "./editorSlice";
@@ -10,14 +11,18 @@ import {SpeedDial, SpeedDialIcon, ToggleButton, ToggleButtonGroup} from "@materi
 import {makeStyles} from "@material-ui/core/styles";
 import SpeedDialAction from '@material-ui/lab/SpeedDialAction';
 import SaveAltIcon from '@material-ui/icons/SaveAlt';
+import PlayForWork from '@material-ui/icons/PlayForWork';
+import DescriptionOutlinedIcon from '@material-ui/icons/DescriptionOutlined';
 import ZoomInIcon from '@material-ui/icons/ZoomIn';
 import SettingsBackupRestoreIcon from '@material-ui/icons/SettingsBackupRestore';
 import ZoomOutIcon from '@material-ui/icons/ZoomOut';
 import TableChartIcon from '@material-ui/icons/TableChart';
 import ViewWeekIcon from '@material-ui/icons/ViewWeek';
 import {Tooltip} from "@material-ui/core";
+import {saveAs} from 'file-saver';
 
 cytoscape.use(dagre);
+cytoscape.use(svg);
 
 const useStyles = makeStyles((theme) => ({
   speedDial: {
@@ -62,6 +67,27 @@ export function DAG(props) {
       aDownloadLink.href = cy.jpg({'full': true, 'quality': 1});
       aDownloadLink.click();
       setOpen(false);
+    }
+  }
+
+  const handleSaveSvg = () => {
+    if (cyRef.current) {
+      let cy = cyRef.current._cy;
+
+      let svgContent = cy.svg({scale: 1, full: true});
+      let blob = new Blob([svgContent], {type:"image/svg+xml;charset=utf-8"});
+      saveAs(blob, `${editorState.file}.svg`);
+    }
+  }
+
+  const handleExportCyJson = () => {
+    if (cyRef.current) {
+      let cy = cyRef.current._cy;
+
+      let jsonData = cy.json();
+      let jsonString = JSON.stringify(jsonData);
+      let blob = new Blob([jsonString], { type: "application/json" });
+      saveAs(blob, `${editorState.file}.json`);
     }
   }
 
@@ -336,9 +362,19 @@ export function DAG(props) {
           FabProps={{"size": "small"}}
         >
           <SpeedDialAction
-            title="Save"
+            title="Save JPG"
             icon={<SaveAltIcon/>}
             onClick={handleSave}
+          />
+          <SpeedDialAction
+            title="Save SVG"
+            icon={<PlayForWork/>}
+            onClick={handleSaveSvg}
+          />
+          <SpeedDialAction
+            title="Export Cytoscape JSON"
+            icon={<DescriptionOutlinedIcon/>}
+            onClick={handleExportCyJson}
           />
           <SpeedDialAction
             title="Zoom In"
